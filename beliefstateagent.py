@@ -7,18 +7,6 @@ from pacman_module import util
 import time
 import math
 
-def isAccessible(pos1, pos2):
-    x1,y1 = pos1
-    x2, y2 =pos2
-    if x1 == x2 and y1 == y2 +1:
-        return 1
-    if x1 == x2 and y1 == y2 -1:
-        return 1
-    if x1 == x2-1 and y1 == y2:
-        return 1
-    if x1 == x2+1 and y1 == y2:
-        return 1
-    return 0
 
 def normalize(matrix):
     """
@@ -136,7 +124,6 @@ class BeliefStateAgent(Agent):
     def sensorModel(self, evidence, ghost_position):
         max_x, max_y = self.getLayoutSize()
         x,y = ghost_position
-
         for i in range (-self.w, self.w +1):
             for j in range (-self.w, self.w+1 ):
                 if x+i < 0 or x+i > max_x or y+j <0 or y+j > max_y:
