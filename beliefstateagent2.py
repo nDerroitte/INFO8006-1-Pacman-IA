@@ -5,7 +5,6 @@ from pacman_module.pacman import Directions, GhostRules
 import numpy as np
 from pacman_module import util
 import time
-import math
 
 
 class BeliefStateAgent(Agent):
@@ -31,51 +30,15 @@ class BeliefStateAgent(Agent):
         # when 'EAST' is legal (see instructions)
         self.p = self.args.p
 
-    def getNbLegalMoves(self, ghost_position):
-        nb_legal_move = 0
-        #West
-        if(not self.walls[x-1][y]):
-            nb_legal_move+=1
-        #South
-        if(not self.walls[x][y-1]):
-            nb_legal_move+=1
-        #North
-        if(not self.walls[x][y+1]):
-            nb_legal_move+=1
-        #East
-        if (not self.walls[x+1][y]):
-            nb_legal_move +=1
-        return nb_legal_move
 
-    def transitionModel(self, ghost_position_t1, ghost_position_t):
-        nb_legal_move = self.getNbLegalMoves(ghost_position_t)
-        if not nb_legal_move:
-            return 0
-        x, y = ghost_position_t
-        x1, y1 = ghost_position_t1
-        if x == x1-1 and y == y1:
-            return self.p + (1-self.p)/getNbLegalMoves
-        elif isAccessible(ghost_position_t1, ghost_position_t):
-            if not  self.walls[x+1][y]:
-                return (1-self.p)/getNbLegalMoves
-            else:
-                return 1/getNbLegalMoves
+    def getAllPropPosition(self, evidence):
+        prob_position = []
+        for k in range(-self.w, self.w+1):
+            for o in range(-self.w, self.w+1):
+                position_to_add = (evidence[0]+k, evidence[1]+o)
+                prob_position.append(position_to_add)
+        return prob_position
 
-    def sensorModel(self, evidence, ghost_position):
-        walls = self.walls.asList()
-        last_cell = max(walls)
-        max_x = last_cell[0]+1
-        max_y = last_cell[1]+1
-        x,y = ghost_position
-        for i in range (-self.w, self.w +1):
-            for j in range (-self.w, self.w+1 ):
-                if x+i < 0 or x+i > max_x or y+j <0 or y+j > max_y:
-                    continue
-                if (x+i, y+j) == evidence:
-                    return (1/(math.pow(2*self.w +1 ,2)))
-        return 0
-
-    #def alpha
     def updateAndGetBeliefStates(self, evidences):
         """
         Given a list of (noised) distances from pacman to ghosts,
@@ -104,11 +67,31 @@ class BeliefStateAgent(Agent):
         #For each ghost :
         for i in range(len(evidences)):
             nb_legal_move = 0
-
-            x,y = evidences[i]
+            prob_position = self.getAllPropPosition(evidences[i])
+            p =0
             prob_matrix = np.matrix(np.zeros((last_cell[0]+1,last_cell[1]+1)))
+            for pos in prob_position:
+                p+=1
+                x,y =pos
+                position_to_set = [[x,y ]]
+                if(not self.walls[x+1][y]):
+                    nb_legal_move+=1
+                    position_to_set.append([x+1, y])
+                if(not self.walls[x][y-1]):
+                    nb_legal_move+=1
+                    position_to_set.append([x, y-1])
+                if(not self.walls[x][y+1]):
+                    nb_legal_move+=1
+                    position_to_set.append([x, y+1])
 
+                #East if a legal move
+                if (not self.walls[x-1][y]):
+                    nb_legal_move +=1
+                    prob_matrix[x-1, y] = self.p
 
+                for posi in position_to_set:
+                    if nb_legal_move:
+                        prob_matrix[posi[0], posi[1]] *= 1/nb_legal_move
             prob_matrixes.append(prob_matrix)
 
         beliefStates = prob_matrixes
@@ -164,16 +147,3 @@ class BeliefStateAgent(Agent):
             self.walls = state.getWalls()
         return self.updateAndGetBeliefStates(
             self._computeNoisyPositions(state))
-
-def isAccessible(pos1, pos2):
-    x1,y1 = pos1
-    x2, y2 =pos2
-    if x1 == x2 and y1 == y2 +1:
-        return 1
-    if x1 == x2 and y1 == y2 -1:
-        return 1
-    if x1 == x2-1 and y1 == y2:
-        return 1
-    if x1 == x2+1 and y1 == y2:
-        return 1
-    return 0
