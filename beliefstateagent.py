@@ -7,19 +7,6 @@ from pacman_module import util
 import time
 import math
 
-def isAccessible(pos1, pos2):
-    x1,y1 = pos1
-    x2, y2 =pos2
-    if x1 == x2 and y1 == y2 +1:
-        return 1
-    if x1 == x2 and y1 == y2 -1:
-        return 1
-    if x1 == x2-1 and y1 == y2:
-        return 1
-    if x1 == x2+1 and y1 == y2:
-        return 1
-    return 0
-
 def normalize(matrix):
     """
     Arguments:
@@ -134,16 +121,29 @@ class BeliefStateAgent(Agent):
                 return 1/nb_legal_move
 
     def sensorModel(self, evidence, ghost_position):
-        max_x, max_y = self.getLayoutSize()
-        x,y = ghost_position
+        """
+        Given an evidence and the ghost position (state), compute the
+        probability of the sensor model
 
-        for i in range (-self.w, self.w +1):
-            for j in range (-self.w, self.w+1 ):
-                if x+i < 0 or x+i > max_x or y+j <0 or y+j > max_y:
-                    continue
-                if (x+i, y+j) == evidence:
-                    return (1/(math.pow(2*self.w + 1, 2)))
-        return 0
+        Arguments:
+        ----------
+        - `evidences`: list of (noised) ghost positions at state x_{t}
+          where 't' is the current time step
+        - `ghost_position` : the position of the ghost
+
+        Return:
+        -------
+        - The probability of having the given evidence knowing the given 
+            ghost position
+        """
+
+        # check if the evidence is within the square of side w around the ghost
+        # position and return the uniform probability, 0 otherwise
+        if (abs(evidence[0]-ghost_position[0]) <= self.w 
+            and abs(evidence[1]-ghost_position[1]) <= self.w):
+            return 1/(math.pow(2*self.w + 1, 2))
+        else:
+            return 0
 
     def updateAndGetBeliefStates(self, evidences):
         """
