@@ -7,6 +7,22 @@ from pacman_module import util
 import time
 import math
 
+def isAccessible(pos1, pos2):
+    x1,y1 = pos1
+    x2, y2 =pos2
+    if x1 == x2 and y1 == y2 +1:
+        return 1
+    if x1 == x2 and y1 == y2 -1:
+        return 1
+    if x1 == x2-1 and y1 == y2:
+        return 1
+    if x1 == x2+1 and y1 == y2:
+        return 1
+    return 0
+
+def normalize(matrix):
+    alpha = 1/matrix.sum()
+    return np.multiply(matrix, alpha)
 
 class BeliefStateAgent(Agent):
     def __init__(self, args):
@@ -31,51 +47,62 @@ class BeliefStateAgent(Agent):
         # when 'EAST' is legal (see instructions)
         self.p = self.args.p
 
-    def getNbLegalMoves(self, ghost_position):
-        nb_legal_move = 0
+    def getLayoutSize(self):
+        walls = self.walls.asList()
+        last_cell = max(walls)
+        return last_cell[0]+1, last_cell[1]+1
+
+    def getLegalPos(self, position):
+        legal_moves = []
+        x, y = position
+        x_max, y_max = self.getLayoutSize()
+
         #West
-        if(not self.walls[x-1][y]):
-            nb_legal_move+=1
+        if(x-1 > 0 and not self.walls[x-1][y]):
+            legal_moves.append((x-1,y))
         #South
-        if(not self.walls[x][y-1]):
-            nb_legal_move+=1
+        if(y-1 > 0 and not self.walls[x][y-1]):
+            legal_moves.append((x,y-1))
         #North
-        if(not self.walls[x][y+1]):
-            nb_legal_move+=1
+        if(y+1 < y_max and not self.walls[x][y+1]):
+            legal_moves.append((x,y-1))
         #East
-        if (not self.walls[x+1][y]):
-            nb_legal_move +=1
-        return nb_legal_move
+        if (x+1 < x_max and not self.walls[x+1][y]):
+            legal_moves.append((x+1,y))
+        
+        return legal_moves
+
+    def getNbLegalMoves(self, ghost_position):
+        return len(self.getLegalPos(ghost_position))
 
     def transitionModel(self, ghost_position_t1, ghost_position_t):
         nb_legal_move = self.getNbLegalMoves(ghost_position_t)
         if not nb_legal_move:
             return 0
+        
         x, y = ghost_position_t
         x1, y1 = ghost_position_t1
+        
         if x == x1-1 and y == y1:
-            return self.p + (1-self.p)/getNbLegalMoves
-        elif isAccessible(ghost_position_t1, ghost_position_t):
-            if not  self.walls[x+1][y]:
-                return (1-self.p)/getNbLegalMoves
+            return self.p + (1-self.p)/nb_legal_move
+        else:
+            if not self.walls[x+1][y]:
+                return (1-self.p)/nb_legal_move
             else:
-                return 1/getNbLegalMoves
+                return 1/nb_legal_move
 
     def sensorModel(self, evidence, ghost_position):
-        walls = self.walls.asList()
-        last_cell = max(walls)
-        max_x = last_cell[0]+1
-        max_y = last_cell[1]+1
+        max_x, max_y = self.getLayoutSize()
         x,y = ghost_position
+        
         for i in range (-self.w, self.w +1):
             for j in range (-self.w, self.w+1 ):
                 if x+i < 0 or x+i > max_x or y+j <0 or y+j > max_y:
                     continue
                 if (x+i, y+j) == evidence:
-                    return (1/(math.pow(2*self.w +1 ,2)))
+                    return (1/(math.pow(2*self.w + 1, 2)))
         return 0
-
-    #def alpha
+    
     def updateAndGetBeliefStates(self, evidences):
         """
         Given a list of (noised) distances from pacman to ghosts,
@@ -97,22 +124,24 @@ class BeliefStateAgent(Agent):
         """
 
         beliefStates = self.beliefGhostStates
-        #Variables init :
-        walls = self.walls.asList()
-        last_cell = max(walls)
-        prob_matrixes = []
-        #For each ghost :
+
+        max_x, max_y = self.getLayoutSize()
+
+        new_beliefs = []
         for i in range(len(evidences)):
-            nb_legal_move = 0
+            new_belief = np.matrix(np.zeros((max_x,max_y)))
+            for x in range(max_x):
+                for y in range(max_y):
+                    term = self.sensorModel(evidences[i],(x,y))
+                    print(term)
+                    sum = 0
+                    for pos in self.getLegalPos((x,y)):
+                        sum += (self.transitionModel((x,y),pos)
+                            *beliefStates[i][pos[0],pos[1]])
+                    new_belief[x, y] = term*sum
+                    #print(new_belief)
+            new_beliefs.append(normalize(new_belief))
 
-            x,y = evidences[i]
-            prob_matrix = np.matrix(np.zeros((last_cell[0]+1,last_cell[1]+1)))
-
-
-            prob_matrixes.append(prob_matrix)
-
-        beliefStates = prob_matrixes
-        #time.sleep(5)
         self.beliefGhostStates = beliefStates
         return beliefStates
 
@@ -164,16 +193,3 @@ class BeliefStateAgent(Agent):
             self.walls = state.getWalls()
         return self.updateAndGetBeliefStates(
             self._computeNoisyPositions(state))
-
-def isAccessible(pos1, pos2):
-    x1,y1 = pos1
-    x2, y2 =pos2
-    if x1 == x2 and y1 == y2 +1:
-        return 1
-    if x1 == x2 and y1 == y2 -1:
-        return 1
-    if x1 == x2-1 and y1 == y2:
-        return 1
-    if x1 == x2+1 and y1 == y2:
-        return 1
-    return 0
