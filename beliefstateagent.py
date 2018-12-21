@@ -18,7 +18,7 @@ def normalize(matrix):
     - The normalize matrix from the input matrix.
     """
     sum = matrix.sum()
-    # Verification that the sum is !=0. Shouldn't never happen
+    # Verfify that the sum is !=0 (should never happen)
     if not sum :
         return matrix
     alpha = 1/matrix.sum()
@@ -75,16 +75,16 @@ class BeliefStateAgent(Agent):
         x, y = position
         x_max, y_max = self.getLayoutSize()
 
-        #West
+        # West
         if(x-1 > 0 and not self.walls[x-1][y]):
             legal_moves.append((x-1, y))
-        #South
+        # South
         if(y-1 > 0 and not self.walls[x][y-1]):
             legal_moves.append((x, y-1))
-        #North
+        # North
         if(y+1 < y_max and not self.walls[x][y+1]):
             legal_moves.append((x, y+1))
-        #East
+        # East
         if (x+1 < x_max and not self.walls[x+1][y]):
             legal_moves.append((x+1, y))
 
@@ -105,6 +105,21 @@ class BeliefStateAgent(Agent):
         return len(self.getLegalPos(position))
 
     def transitionModel(self, ghost_position_t1, ghost_position_t):
+        """
+        Given a next ghost position and a current ghost position, compute the
+        transition probability between the two positions
+
+        Arguments:
+        ----------
+        - `ghost_position_t1`: the next ghost position
+        - `ghost_position_t`: the current ghost position
+
+        Return:
+        -------
+        - The probability of having the transition between the current ghost
+            position and the next ghost position
+        """
+
         nb_legal_move = self.getNbLegalMoves(ghost_position_t)
         if not nb_legal_move:
             return 0
@@ -112,9 +127,11 @@ class BeliefStateAgent(Agent):
         x, y = ghost_position_t
         x1, y1 = ghost_position_t1
 
+        # Check if the 'east' move is performed
         if x == x1-1 and y == y1:
             return self.p + (1-self.p)/nb_legal_move
         else:
+            # Check if the 'east' move is a legal move
             if not self.walls[x+1][y]:
                 return (1-self.p)/nb_legal_move
             else:
@@ -122,8 +139,8 @@ class BeliefStateAgent(Agent):
 
     def sensorModel(self, evidence, ghost_position):
         """
-        Given an evidence and the ghost position (state), compute the
-        probability of the sensor model
+        Given an evidence and the ghost position, compute the
+        probability observing the evidence knowing the ghost position
 
         Arguments:
         ----------
@@ -137,7 +154,7 @@ class BeliefStateAgent(Agent):
             ghost position
         """
 
-        # check if the evidence is within the square of side w around the ghost
+        # Check if the evidence is within the square of side w around the ghost
         # position and return the uniform probability, 0 otherwise
         if (abs(evidence[0]-ghost_position[0]) <= self.w 
             and abs(evidence[1]-ghost_position[1]) <= self.w):
