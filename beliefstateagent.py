@@ -21,9 +21,18 @@ def isAccessible(pos1, pos2):
     return 0
 
 def normalize(matrix):
+    """
+    Arguments:
+    ---------
+    - `matrix : input matrix one wants to normalize
+
+    Return:
+    -------
+    - The normalize matrix from the input matrix.
+    """
     sum = matrix.sum()
+    # Verification that the sum is !=0. Shouldn't never happen
     if not sum :
-        print("zut")
         return matrix
     alpha = 1/matrix.sum()
     return np.multiply(matrix, alpha)
@@ -52,32 +61,61 @@ class BeliefStateAgent(Agent):
         self.p = self.args.p
 
     def getLayoutSize(self):
+        """
+        Get the size of the puzzle
+
+        Return:
+        --------
+         - (x_max, y_max), a list containing the maximum index of the maze
+        """
         walls = self.walls.asList()
         last_cell = max(walls)
         return last_cell[0]+1, last_cell[1]+1
 
     def getLegalPos(self, position):
+        """
+        Return a list of legal position from a current position
+
+        Arguments:
+        ----------
+        - `position`: a list containing the (x,y) coordinate of the point
+
+        Return:
+        -------
+        The list of legals position from `position
+        """
         legal_moves = []
         x, y = position
         x_max, y_max = self.getLayoutSize()
 
         #West
         if(x-1 > 0 and not self.walls[x-1][y]):
-            legal_moves.append((x-1,y))
+            legal_moves.append((x-1, y))
         #South
         if(y-1 > 0 and not self.walls[x][y-1]):
-            legal_moves.append((x,y-1))
+            legal_moves.append((x, y-1))
         #North
         if(y+1 < y_max and not self.walls[x][y+1]):
-            legal_moves.append((x,y+1))
+            legal_moves.append((x, y+1))
         #East
         if (x+1 < x_max and not self.walls[x+1][y]):
-            legal_moves.append((x+1,y))
+            legal_moves.append((x+1, y))
 
         return legal_moves
 
-    def getNbLegalMoves(self, ghost_position):
-        return len(self.getLegalPos(ghost_position))
+    def getNbLegalMoves(self, position):
+        """
+        Get the number of legals move from a position
+
+        Argument:
+        --------
+        -`position`: the current position
+
+        Return:
+        ------
+        The number of legals move from the position
+        """
+        return len(self.getLegalPos(position))
 
     def transitionModel(self, ghost_position_t1, ghost_position_t):
         nb_legal_move = self.getNbLegalMoves(ghost_position_t)
@@ -128,24 +166,32 @@ class BeliefStateAgent(Agent):
         """
 
         beliefStates = self.beliefGhostStates
-
+        # Getting max size of the maze
         max_x, max_y = self.getLayoutSize()
 
+        # List of the new beliefs we will create
         new_beliefs = []
+        # Looping for each ghost
         for i in range(len(evidences)):
-            new_belief = np.matrix(np.zeros((max_x,max_y)))
+            # Init matrix
+            new_belief = np.matrix(np.zeros((max_x, max_y)))
+            # Looping through the matrix of position
             for x in range(max_x):
                 for y in range(max_y):
-                    term = self.sensorModel(evidences[i],(x,y))
+                    # Getting the first term of the Bayes filter definition
+                    term = self.sensorModel(evidences[i], (x, y))
+                    # Getting the sum terms of the Bayes filter definition
                     sum = 0
-                    for pos in self.getLegalPos((x,y)):
-                        sum += (self.transitionModel((x,y),pos)
-                            *beliefStates[i][pos[0],pos[1]])
+                    for pos in self.getLegalPos((x, y)):
+                        sum += (self.transitionModel((x, y), pos)
+                            *beliefStates[i][pos[0], pos[1]])
+                    # Computing the final value for pixel (x, y)
                     new_belief[x, y] = term*sum
-                    #print(new_belief)
+            # Adding the matrix for the current ghost in the total matrix
             new_beliefs.append(normalize(new_belief))
+
+        # Returning our newly computed matrix
         beliefStates = new_beliefs
-        #time.sleep(5)
         self.beliefGhostStates = beliefStates
         return beliefStates
 
