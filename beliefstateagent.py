@@ -150,13 +150,13 @@ class BeliefStateAgent(Agent):
 
         Return:
         -------
-        - The probability of having the given evidence knowing the given 
+        - The probability of having the given evidence knowing the given
             ghost position
         """
 
         # Check if the evidence is within the square of side w around the ghost
         # position and return the uniform probability, 0 otherwise
-        if (abs(evidence[0]-ghost_position[0]) <= self.w 
+        if (abs(evidence[0]-ghost_position[0]) <= self.w
             and abs(evidence[1]-ghost_position[1]) <= self.w):
             return 1/(math.pow(2*self.w + 1, 2))
         else:
