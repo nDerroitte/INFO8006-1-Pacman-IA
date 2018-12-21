@@ -23,6 +23,7 @@ def isAccessible(pos1, pos2):
 def normalize(matrix):
     sum = matrix.sum()
     if not sum :
+        print("zut")
         return matrix
     alpha = 1/matrix.sum()
     return np.multiply(matrix, alpha)
@@ -68,7 +69,7 @@ class BeliefStateAgent(Agent):
             legal_moves.append((x,y-1))
         #North
         if(y+1 < y_max and not self.walls[x][y+1]):
-            legal_moves.append((x,y-1))
+            legal_moves.append((x,y+1))
         #East
         if (x+1 < x_max and not self.walls[x+1][y]):
             legal_moves.append((x+1,y))
@@ -144,6 +145,7 @@ class BeliefStateAgent(Agent):
                     #print(new_belief)
             new_beliefs.append(normalize(new_belief))
         beliefStates = new_beliefs
+        #time.sleep(5)
         self.beliefGhostStates = beliefStates
         return beliefStates
 
